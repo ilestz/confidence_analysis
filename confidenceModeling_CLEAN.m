@@ -18,6 +18,7 @@ dataConf.rot = -1 * abs(dataConf.rot); %negative abs of rot; err = ha + rot
 %additionally, confidence is flipped, with 100 as low confidence and 0 as
 %high confidence; we should fix this here
 dataConf.conf = 100-dataConf.conf;
+dataConf.conf(isnan(dataConf.conf)) = 50;
 
 %quick performance metrics
 exp1_idxs = 263:312;
@@ -27,8 +28,8 @@ if exp_num == 1
 else
     exp_idxs = exp2_idxs;
 end
-mean_err = mean(nanmean((dataConf.ha(:, exp_idxs)+dataConf.rot(exp_idxs)')'));
-std_err = std(nanmean((dataConf.ha(:, exp_idxs)+dataConf.rot(exp_idxs)')'));
+mean_err = mean(nanmean((dataConf.ha(:, exp_idxs)+dataConf.rot(:,exp_idxs))'));
+std_err = std(nanmean((dataConf.ha(:, exp_idxs)+dataConf.rot(:,exp_idxs))'));
 
 %corr aim/implicit with confidence
 imp_r = nan(1, nsubs);
@@ -181,20 +182,20 @@ for si = 1:nsubs
 
 %% model 5: confidence tracks history of errors (HIST EE); subjective %%       
     disp(['now fitting subject ',num2str(si),' and HIST EE EXP']);
-    
+
     for k = 1:n_iter
-        
+
         offset = rand*100; %baseline confidence
         weight = rand*100; %weight/sensitivity to error
         ee_exp = rand*4; %exponent on errors
         K = rand; %learning rate for state estimate of errors
-        
+
         params = [offset,weight, ee_exp, K];
         options=optimset('display','off');
         LB = [0   0    0  0];
         UB = [100 100  4  1];
         [params, error] = fmincon(@func_conf_HIST_EE_EXP,params,[],[],[],[],LB,UB,[],options,dataConf,rot_phase,subject);
-        
+
         model5.p(k,:) = params;
         model5.error(k) = error;
     end
@@ -211,35 +212,35 @@ for si = 1:nsubs
 %     plot(confidence(si,:),'k','linewidth',2); hold on; % plot
 %     plot(modelFit_HIST_TE_EXP.confpred(si,:),'g');
 %     pause(0.5);clf; % examine figure
-
-%% model 6: confidence tracks history of implicit (HIST IMP); subjective %%       
-    disp(['now fitting subject ',num2str(si),' and HIST IMP EXP']);
-    
-    for k = 1:n_iter
-        
-        offset = rand*100; %baseline confidence
-        weight = rand*100; %weight/sensitivity to error
-        imp_exp = rand*4; %exponent on errors
-        K = rand; %learning rate for state estimate of errors
-        
-        params = [offset,weight, imp_exp, K];
-        options=optimset('display','off');
-        LB = [0   0    0  0];
-        UB = [100 100  4  1];
-        [params, error] = fmincon(@func_conf_HIST_IMP_EXP,params,[],[],[],[],LB,UB,[],options,dataConf,rot_phase,subject);
-        
-        model6.p(k,:) = params;
-        model6.error(k) = error;
-    end
-    [modelFit_HIST_IMP_EXP.ll(si),best] = min(model6.error);    
-    modelFit_HIST_IMP_EXP.offset(si) = model6.p(best,1);
-    modelFit_HIST_IMP_EXP.weight(si) = model6.p(best,2);
-    modelFit_HIST_IMP_EXP.exponent(si) = model6.p(best,3);
-    modelFit_HIST_IMP_EXP.K(si) = model6.p(best,4);
-    modelFit_HIST_IMP_EXP.n_params(si) = length(model6.p(1,:));
-    [modelFit_HIST_IMP_EXP.sse(si), modelFit_HIST_IMP_EXP.confpred(si,:), modelFit_HIST_IMP_EXP.r2(si)] = func_conf_HIST_IMP_EXP(model6.p(best,:),dataConf,rot_phase,subject);
-    modelFit_HIST_IMP_EXP.bic(si) = sum(rot_phase)*log(modelFit_HIST_IMP_EXP.sse(si)/sum(rot_phase)) + modelFit_HIST_IMP_EXP.n_params(si)*log(sum(rot_phase));
-    modelFit_HIST_IMP_EXP.aic(si) = sum(rot_phase)*log(modelFit_HIST_IMP_EXP.sse(si)/sum(rot_phase)) + 2*modelFit_HIST_IMP_EXP.n_params(si);
+% 
+% %% model 6: confidence tracks history of implicit (HIST IMP); subjective %%       
+%     disp(['now fitting subject ',num2str(si),' and HIST IMP EXP']);
+% 
+%     for k = 1:n_iter
+% 
+%         offset = rand*100; %baseline confidence
+%         weight = rand*100; %weight/sensitivity to error
+%         imp_exp = rand*4; %exponent on errors
+%         K = rand; %learning rate for state estimate of errors
+% 
+%         params = [offset,weight, imp_exp, K];
+%         options=optimset('display','off');
+%         LB = [0   0    0  0];
+%         UB = [100 100  4  1];
+%         [params, error] = fmincon(@func_conf_HIST_IMP_EXP,params,[],[],[],[],LB,UB,[],options,dataConf,rot_phase,subject);
+% 
+%         model6.p(k,:) = params;
+%         model6.error(k) = error;
+%     end
+%     [modelFit_HIST_IMP_EXP.ll(si),best] = min(model6.error);    
+%     modelFit_HIST_IMP_EXP.offset(si) = model6.p(best,1);
+%     modelFit_HIST_IMP_EXP.weight(si) = model6.p(best,2);
+%     modelFit_HIST_IMP_EXP.exponent(si) = model6.p(best,3);
+%     modelFit_HIST_IMP_EXP.K(si) = model6.p(best,4);
+%     modelFit_HIST_IMP_EXP.n_params(si) = length(model6.p(1,:));
+%     [modelFit_HIST_IMP_EXP.sse(si), modelFit_HIST_IMP_EXP.confpred(si,:), modelFit_HIST_IMP_EXP.r2(si)] = func_conf_HIST_IMP_EXP(model6.p(best,:),dataConf,rot_phase,subject);
+%     modelFit_HIST_IMP_EXP.bic(si) = sum(rot_phase)*log(modelFit_HIST_IMP_EXP.sse(si)/sum(rot_phase)) + modelFit_HIST_IMP_EXP.n_params(si)*log(sum(rot_phase));
+%     modelFit_HIST_IMP_EXP.aic(si) = sum(rot_phase)*log(modelFit_HIST_IMP_EXP.sse(si)/sum(rot_phase)) + 2*modelFit_HIST_IMP_EXP.n_params(si);
 
 %     plot(confidence(si,:),'k','linewidth',2); hold on; % plot
 %     plot(modelFit_HIST_TE_EXP.confpred(si,:),'g');
@@ -291,25 +292,32 @@ for s = 1:nsubs
     modelFit_HIST_TE.true_r2(s) = true_r(1,2)^2;
     true_r = corrcoef(modelFit_HIST_TE_EXP.confpred(s,:)', dataConf.conf(s, rot_phase)', 'rows', 'complete');
     modelFit_HIST_TE_EXP.true_r2(s) = true_r(1,2)^2;
-    true_r = corrcoef(modelFit_HIST_EE_EXP.confpred(s,:)', dataConf.conf(s, rot_phase)', 'rows', 'complete');
-    modelFit_HIST_EE_EXP.true_r2(s) = true_r(1,2)^2;
-    true_r = corrcoef(modelFit_HIST_IMP_EXP.confpred(s,:)', dataConf.conf(s, rot_phase)', 'rows', 'complete');
-    modelFit_HIST_IMP_EXP.true_r2(s) = true_r(1,2)^2;
+    % true_r = corrcoef(modelFit_HIST_EE_EXP.confpred(s,:)', dataConf.conf(s, rot_phase)', 'rows', 'complete');
+    % modelFit_HIST_EE_EXP.true_r2(s) = true_r(1,2)^2;
+    % true_r = corrcoef(modelFit_HIST_IMP_EXP.confpred(s,:)', dataConf.conf(s, rot_phase)', 'rows', 'complete');
+    % modelFit_HIST_IMP_EXP.true_r2(s) = true_r(1,2)^2;
 end
 
 
-%%EXP 1
-% save modelFit_1TB_TE.mat modelFit_1TB_TE
-% save modelFit_1TB_TE_EXP.mat modelFit_1TB_TE_EXP
-% save modelFit_HIST.mat modelFit_HIST_TE
-% save modelFit_HIST_TE_EXP.mat modelFit_HIST_TE_EXP
+%add stuff into the model fitting that is useful for figures
+modelFit_HIST_TE_EXP.aic_1TB_TE = modelFit_1TB_TE.aic - modelFit_HIST_TE_EXP.aic;
+modelFit_HIST_TE_EXP.aic_1TB_TE_EXP = modelFit_1TB_TE_EXP.aic - modelFit_HIST_TE_EXP.aic;
+modelFit_HIST_TE_EXP.aic_HIST_TE = modelFit_HIST_TE.aic - modelFit_HIST_TE_EXP.aic;
+modelFit_HIST_TE_EXP.aic_HIST_TE_EXP = zeros(1, length(modelFit_1TB_TE.aic));
+modelFit_HIST_TE_EXP.aic_diff = modelFit_HIST_TE_EXP.aic - min(modelFit_HIST_TE.aic, min(modelFit_1TB_TE_EXP.aic,  modelFit_1TB_TE.aic));
 
-%%EXP 2
-% save modelFit_1TB_TE2.mat modelFit_1TB_TE
-% save modelFit_1TB_TE_EXP2.mat modelFit_1TB_TE_EXP
-% save modelFit_HIST2.mat modelFit_HIST_TE
-% save modelFit_HIST_TE_EXP2.mat modelFit_HIST_TE_EXP
 
+if exp_num == 1
+save modelFit_1TB_TE.mat modelFit_1TB_TE
+save modelFit_1TB_TE_EXP.mat modelFit_1TB_TE_EXP
+save modelFit_HIST.mat modelFit_HIST_TE
+save modelFit_HIST_TE_EXP.mat modelFit_HIST_TE_EXP
+else
+save modelFit_1TB_TE2.mat modelFit_1TB_TE
+save modelFit_1TB_TE_EXP2.mat modelFit_1TB_TE_EXP
+save modelFit_HIST2.mat modelFit_HIST_TE
+save modelFit_HIST_TE_EXP2.mat modelFit_HIST_TE_EXP
+end
 % 
 % if ispc
 % !shutdown -s -f -t 0
@@ -351,74 +359,6 @@ bar(aic_diff); xlabel("Subject"); ylabel("\Delta AIC");
 %exportgraphics(gcf_aic2, sprintf('aic_deltas_exp%d_vec.eps', exp_num), 'BackgroundColor', 'none','ContentType', 'vector');
 
 
-%across experiment parameter comparisons
-%load the data frames
-load modelFit_HIST_TE_EXP.mat
-model1 = modelFit_HIST_TE_EXP;
-load modelFit_HIST_TE_EXP2.mat
-model2 = modelFit_HIST_TE_EXP;
-%offset
-gcf_offset = figure;
-exp = [repmat(cellstr("Exp. 1"), 18,1);...
-    repmat(cellstr("Exp. 2"), 20,1)];
-expOffsets = [model1.offset model2.offset];
-violinplot(expOffsets, exp, 'GroupOrder', {'Exp. 1', 'Exp. 2'});
-ylabel("Conf_{Max} (1-100)");
-%exportgraphics(gcf_offset,'expoffsets_vec.eps','ContentType','vector');
-%weight
-gcf_weight = figure;
-expWeights = [model1.weight model2.weight];
-violinplot(expWeights, exp, 'GroupOrder', {'Exp. 1', 'Exp. 2'});
-ylabel("\eta", 'FontSize', 20);
-%exportgraphics(gcf_weight,'expweights_vec.eps','ContentType','vector');
-%exponent
-gcf_exponent = figure;
-expExp = [model1.exponent model2.exponent];
-violinplot(expExp, exp, 'GroupOrder', {'Exp. 1', 'Exp. 2'});
-ylabel("\gamma", 'FontSize', 20);
-%exportgraphics(gcf_exponent,'expexponent_vec.eps','ContentType','vector');
-%learning rate
-gcf_K = figure;
-expKs = [model1.K model2.K];
-violinplot(expKs, exp, 'GroupOrder', {'Exp. 1', 'Exp. 2'});
-ylabel("\alpha", 'FontSize', 20);
-%exportgraphics(gcf_K,'expalphas_vec.eps','ContentType','vector');
-
-
-
-%parameter comparison
-%offset
-figure;
-modelOffsets = [modelFit_1TB_TE.offset modelFit_1TB_TE_EXP.offset modelFit_HIST_TE.offset modelFit_HIST_TE_EXP.offset]';
-violinplot(modelOffsets, model, 'GroupOrder', {'1TB TE', '1TB TE Subj', 'Hist TE', 'Hist TE Subj'}, 'ViolinColor', ...
-    [0 1 0; 0 0 1; 1 0 0; 1 0 1]);
-xlabel("Model"); ylabel("Offset");
-
-%weight
-figure;
-modelWeights = [modelFit_1TB_TE.weight modelFit_1TB_TE_EXP.weight modelFit_HIST_TE.weight modelFit_HIST_TE_EXP.weight]';
-violinplot(modelWeights, model, 'GroupOrder', {'1TB TE', '1TB TE Subj', 'Hist TE', 'Hist TE Subj'}, 'ViolinColor', ...
-    [0 1 0; 0 0 1; 1 0 0; 1 0 1]);
-xlabel("Model"); ylabel("Weight");
-
-%exponent
-figure;
-model_exp = [repmat(cellstr('1TB TE Subj'), nsubs, 1); ...
-    repmat(cellstr('Hist TE Subj'), nsubs, 1)];
-modelExps = [modelFit_1TB_TE_EXP.exponent modelFit_HIST_TE_EXP.exponent]';
-violinplot(modelExps, model_exp, 'GroupOrder', {'1TB TE Subj', 'Hist TE Subj'}, 'ViolinColor', ...
-    [0 0 1; 1 0 1]);
-xlabel("Model"); ylabel("Exponent");
-
-%learning rate
-figure;
-model_k = [repmat(cellstr('Hist TE'), nsubs, 1); ...
-    repmat(cellstr('Hist TE Subj'), nsubs, 1)];
-modelKs = [modelFit_HIST_TE.K modelFit_HIST_TE_EXP.K]';
-violinplot(modelKs, model_k, 'GroupOrder', {'Hist TE', 'Hist TE Subj'}, 'ViolinColor', ...
-    [1 0 0; 1 0 1]);
-xlabel("Model"); ylabel("Learning Rate");
-
 
 function shadedErrorPlot(data, color, alpha, offset)
     std_dat = nanstd(data);
@@ -429,9 +369,6 @@ function shadedErrorPlot(data, color, alpha, offset)
     set(patch, 'edgecolor', 'none');
     set(patch, 'FaceAlpha', alpha);
 end
-
-
-
 
 
 

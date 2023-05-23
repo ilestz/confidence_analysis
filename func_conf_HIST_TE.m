@@ -9,7 +9,8 @@ TE_WEIGHT = params(2);
 K = params(3);
 
 ntrials = sum(idx==1);
-rotation = df.rot(idx);
+rotation = df.rot(sub, idx);
+rotation = rotation';
 ha = df.ha(sub,idx); % hand angle data
 ha=ha';
 

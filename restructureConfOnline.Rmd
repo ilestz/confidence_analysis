@@ -1,0 +1,147 @@
+---
+title: "restructureConfOnline"
+output: html_document
+date: "2023-03-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rjson)
+```
+
+```{r}
+df.all = fromJSON(file = "all_subjects_v1.json")
+
+numtrials = 200
+numbase = 10
+numreport = 20
+numadapt = 150
+numwash = 20
+numsubs = length(df.all) #54
+
+is_manipulated = vector(length = numsubs*numtrials)
+manipulation_angle = vector(length = numsubs*numtrials)
+online_feedback = vector(length = numsubs*numtrials)
+endpoint_feedback = vector(length = numsubs*numtrials)
+is_judged = vector(length = numsubs*numtrials) #is report
+label = vector(length = numsubs*numtrials) #baseline, adapt, wash
+too_slow = vector(length = numsubs*numtrials)
+too_late = vector(length = numsubs*numtrials)
+manipulation_type = vector(length = numsubs*numtrials)
+rt = vector(length = numsubs*numtrials)
+mt = vector(length = numsubs*numtrials)
+target_angle = vector(length = numsubs*numtrials)
+reach_angle = vector(length = numsubs*numtrials)
+diff_angle = vector(length = numsubs*numtrials)
+trial = vector(length = numsubs*numtrials)
+id = endpoint_feedback = vector(length = numsubs*numtrials)
+group = vector(length = numsubs*numtrials) #instead of experiment version
+judgement_width = vector(length =  numsubs*numtrials) #only need confidence
+
+c = 1
+for(s in 1:numsubs){
+  for(tt in 1:numbase){
+    is_manipulated[c] = df.all[[s]]$data$practice_basic[[tt]]$rot_or_clamp == 'rot'
+    manipulation_angle[c] = df.all[[s]]$data$practice_basic[[tt]]$manip_angle
+    manipulation_type[c] = ifelse(df.all[[s]]$data$practice_basic[[tt]]$rot_or_clamp == 'rot', 'rot', 'none')
+    fb_bits = intToBits(df.all[[s]]$data$practice_basic[[tt]]$fb)
+    online_feedback[c] = fb_bits[3] == 1
+    endpoint_feedback[c] = fb_bits[2] == 1
+    is_judged[c] = df.all[[s]]$data$practice_basic[[tt]]$report
+    label[c] = "BASELINE"
+    err_bits = intToBits(df.all[[s]]$data$practice_basic[[tt]]$punish_types)
+    too_slow[c] = err_bits[3] == 1
+    too_late[c] = err_bits[2] == 1
+    rt[c] = df.all[[s]]$data$practice_basic[[tt]]$reaction_time
+    mt[c] = df.all[[s]]$data$practice_basic[[tt]]$reach_time
+    target_angle[c] = df.all[[s]]$data$practice_basic[[tt]]$target_angle
+    reach_angle[c] = df.all[[s]]$data$practice_basic[[tt]]$endpoint_raw_angle
+    diff_angle[c] = reach_angle[c] - target_angle[c]
+    trial[c] = ifelse(c%%numtrials == 0, numtrials, c%%numtrials)
+    id[c] = s
+    group[c] = df.all[[s]]$config$group
+    judgement_width[c] = df.all[[s]]$data$practice_basic[[tt]]$confidence
+    c=c+1
+  }
+  for(tt in 1:numreport){
+    is_manipulated[c] = df.all[[s]]$data$practice_report[[tt]]$rot_or_clamp == 'rot'
+    manipulation_angle[c] = df.all[[s]]$data$practice_report[[tt]]$manip_angle
+    manipulation_type[c] = ifelse(df.all[[s]]$data$practice_report[[tt]]$rot_or_clamp == 'rot', 'rot', 'none')
+    fb_bits = intToBits(df.all[[s]]$data$practice_report[[tt]]$fb)
+    online_feedback[c] = fb_bits[3] == 1
+    endpoint_feedback[c] = fb_bits[2] == 1
+    is_judged[c] = df.all[[s]]$data$practice_report[[tt]]$report
+    label[c] = "BASELINE_REPORT"
+    err_bits = intToBits(df.all[[s]]$data$practice_report[[tt]]$punish_types)
+    too_slow[c] = err_bits[3]==1
+    too_late[c] = err_bits[2]==1
+    rt[c] = df.all[[s]]$data$practice_report[[tt]]$reaction_time
+    mt[c] = df.all[[s]]$data$practice_report[[tt]]$reach_time
+    target_angle[c] = df.all[[s]]$data$practice_report[[tt]]$target_angle
+    reach_angle[c] = df.all[[s]]$data$practice_report[[tt]]$endpoint_raw_angle
+    diff_angle[c] = reach_angle[c] - target_angle[c]
+    trial[c] = ifelse(c%%numtrials == 0, numtrials, c%%numtrials)
+    id[c] = s
+    group[c] = df.all[[s]]$config$group
+    judgement_width[c] = df.all[[s]]$data$practice_report[[tt]]$confidence
+    c=c+1
+  }
+  for(tt in 1:numadapt){
+    is_manipulated[c] = df.all[[s]]$data$adapt_report[[tt]]$rot_or_clamp == 'rot'
+    manipulation_angle[c] = df.all[[s]]$data$adapt_report[[tt]]$manip_angle
+    manipulation_type[c] = ifelse(df.all[[s]]$data$adapt_report[[tt]]$rot_or_clamp == 'rot', 'rot', 'none')
+    fb_bits = intToBits(df.all[[s]]$data$adapt_report[[tt]]$fb)
+    online_feedback[c] = fb_bits[3] == 1
+    endpoint_feedback[c] = fb_bits[2] == 1
+    is_judged[c] = df.all[[s]]$data$adapt_report[[tt]]$report
+    label[c] = "ADAPT"
+    err_bits = intToBits(df.all[[s]]$data$adapt_report[[tt]]$punish_types)
+    too_slow[c] = err_bits[3] == 1
+    too_late[c] = err_bits[2] == 1
+    rt[c] = df.all[[s]]$data$adapt_report[[tt]]$reaction_time
+    mt[c] = df.all[[s]]$data$adapt_report[[tt]]$reach_time
+    target_angle[c] = df.all[[s]]$data$adapt_report[[tt]]$target_angle
+    reach_angle[c] = df.all[[s]]$data$adapt_report[[tt]]$endpoint_raw_angle
+    diff_angle[c] = reach_angle[c] - target_angle[c]
+    trial[c] = ifelse(c%%numtrials == 0, numtrials, c%%numtrials)
+    id[c] = s
+    group[c] = df.all[[s]]$config$group
+    judgement_width[c] = df.all[[s]]$data$adapt_report[[tt]]$confidence
+    c=c+1
+  }
+  for(tt in 1:numwash){
+    is_manipulated[c] = df.all[[s]]$data$wash[[tt]]$rot_or_clamp == 'rot'
+    manipulation_angle[c] = df.all[[s]]$data$wash[[tt]]$manip_angle
+    manipulation_type[c] = ifelse(df.all[[s]]$data$wash[[tt]]$rot_or_clamp == 'rot', 'rot', 'none')
+    fb_bits = intToBits(df.all[[s]]$data$wash[[tt]]$fb)
+    online_feedback[c] = fb_bits[3] == 1
+    endpoint_feedback[c] = fb_bits[2] == 1
+    is_judged[c] = FALSE
+    label[c] = "WASHOUT"
+    err_bits = intToBits(df.all[[s]]$data$wash[[tt]]$punish_types)
+    too_slow[c] = err_bits[3] == 1
+    too_late[c] = err_bits[2] == 1
+    rt[c] = df.all[[s]]$data$wash[[tt]]$reaction_time
+    mt[c] = df.all[[s]]$data$wash[[tt]]$reach_time
+    target_angle[c] = df.all[[s]]$data$wash[[tt]]$target_angle
+    reach_angle[c] = df.all[[s]]$data$wash[[tt]]$endpoint_raw_angle
+    diff_angle[c] = reach_angle[c] - target_angle[c]
+    trial[c] = ifelse(c%%numtrials == 0, numtrials, c%%numtrials)
+    id[c] = s
+    group[c] = df.all[[s]]$config$group
+    judgement_width[c] = df.all[[s]]$data$wash[[tt]]$confidence
+    c=c+1
+  }
+}
+
+dat = data.frame(is_manipulated, manipulation_angle, online_feedback, endpoint_feedback,
+                 is_judged, label, too_slow, too_late, manipulation_type, rt, mt,
+                 target_angle, reach_angle, diff_angle, trial, id, group, judgement_width)
+
+dat_gradual = subset(dat, as.numeric(dat$group) < 3)
+dat_zero = subset(dat, as.numeric(dat$group)  == 3)
+
+write.csv(dat_gradual, file = "confidence_online_gradual.csv")
+write.csv(dat_zero, file = "confidence_online_zeromean.csv")
+```
+

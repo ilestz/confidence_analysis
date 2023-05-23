@@ -10,7 +10,8 @@ TE_EXP = params(3);
 K = params(4);
 
 ntrials = sum(idx==1);
-rotation = df.rot(idx);
+rotation = df.rot(sub, idx);
+rotation = rotation';
 ha = df.ha(sub,idx); % hand angle data
 ha=ha';
 

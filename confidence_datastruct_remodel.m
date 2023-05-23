@@ -2,13 +2,14 @@
 %% May 17 2022; New Haven CT
 clear;close all;clc;
 
-%df = readtable('confidence-EXP1_IMV.csv');
-df = readtable('confidence-data_EXP2.csv');
+df = readtable('confidence-EXP1_IMV.csv');
+%df = readtable('confidence-data_EXP2.csv');
 
 subs = unique(df.id);
 nsubs = length(subs);
 
 num_excluded = 0;
+exp_num = 1;
 
 for j = 1:nsubs
     sidx = strcmp(df.id,subs{j});
@@ -28,6 +29,8 @@ for j = 1:nsubs
     for i = 1:length(tmp)
         if tmp(i) > 180
             tmp(i) = tmp(i) - 360;
+        else
+            %tmp(i) = tmp(i) + 360;
         end
     end
     
@@ -37,7 +40,7 @@ for j = 1:nsubs
     num_excluded = num_excluded + sum(confidence(j,:)==50);
     confidence(j,confidence(j,:)==50) = nan;
    
-    rot = df.manipulation_angle(sidx);
+    rot(j,:) = df.manipulation_angle(sidx);
     
     implicit(j,:) = ha(j,:)-aim(j,:);
     implicit(j,ttype==0) = nan;
@@ -46,14 +49,23 @@ for j = 1:nsubs
 end
 
 % save data
-dataConf_EXP1.ha = ha;
-dataConf_EXP1.aim = aim;
-dataConf_EXP1.implicit = implicit;
-dataConf_EXP1.conf = confidence;
-dataConf_EXP1.rot = rot;
-
+if exp_num == 1
+    dataConf_EXP1.ha = ha;
+    dataConf_EXP1.aim = aim;
+    dataConf_EXP1.implicit = implicit;
+    dataConf_EXP1.conf = confidence;
+    dataConf_EXP1.rot = rot;
+    save dataConf_EXP1 dataConf_EXP1
+else
+    dataConf_EXP2.ha = ha;
+    dataConf_EXP2.aim = aim;
+    dataConf_EXP2.implicit = implicit;
+    dataConf_EXP2.conf = confidence;
+    dataConf_EXP2.rot = rot;
+    save dataConf_EXP2 dataConf_EXP2
+end
 %rot_exp1 = rot;
-%save dataConf_EXP1 dataConf_EXP1
+
 
 % figure;
 % for k = 1:nsubs
@@ -79,11 +91,11 @@ xlabel("Trial Number"); ylabel("Perturbation (\circ)");
 gcf_ha_rot = figure; %error bars!!
 ha_plot = plot(nanmean(ha), 'b', 'linewidth', 2);hold on;
 shadedErrorPlot(ha, 'b', 0.5, 0);
-rot_plot = plot(rot, 'k', 'linewidth', 2);
+rot_plot = plot(rot(1,:), 'k', 'linewidth', 2);
 %plot(nanmean(implicit), 'linewidth', 2);
 legend([ha_plot rot_plot], {'Hand Angle (\circ)', 'Perturbation (\circ)'});
 xlabel("Trial Number"); %ylim([-65 65]);
-exportgraphics(gcf_ha_rot, 'ha_rot_exp1.eps', 'ContentType', 'vector');
+%exportgraphics(gcf_ha_rot, 'ha_rot_exp1.eps', 'ContentType', 'vector');
 
 figure; % error bars!!
 conf_plot = plot(17:240, 100-nanmean(confidence(:, 17:240)), 'k', 'linewidth', 2);
